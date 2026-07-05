@@ -1,13 +1,20 @@
 package com.fitcollector.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Продукт з магазину. Ціна — за упаковку, КБЖВ — на 100 г продукту.
+ *
+ * priceSource: "open-prices" — реальна краудсорсна ціна з чеків (prices.openfoodfacts.org),
+ * "seed" — орієнтовна ціна з локальної бази.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record Product(
         String id,
+        String barcode,
         String name,
+        String brand,
         String store,
         String category,
         double packagePriceZl,
@@ -15,7 +22,16 @@ public record Product(
         double kcalPer100g,
         double proteinPer100g,
         double fatPer100g,
-        double carbsPer100g) {
+        double carbsPer100g,
+        String imageUrl,
+        String priceSource,
+        String priceDate) {
+
+    public Product {
+        if (priceSource == null || priceSource.isBlank()) {
+            priceSource = "seed";
+        }
+    }
 
     /** Ціна за 100 г продукту, zł. */
     @JsonProperty("pricePer100g")

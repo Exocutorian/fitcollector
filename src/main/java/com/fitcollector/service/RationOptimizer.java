@@ -113,7 +113,7 @@ public class RationOptimizer {
             Product p = products.get(i);
             double factor = grams / 100.0;
             RationResult.Item item = new RationResult.Item(
-                    p.id(), p.name(), p.store(), grams,
+                    p.id(), p.name(), p.store(), p.category(), p.imageUrl(), grams,
                     round2(cost[i] * factor),
                     Math.round(kcal[i] * factor),
                     round1(protein[i] * factor),

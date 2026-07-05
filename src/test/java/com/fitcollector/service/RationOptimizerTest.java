@@ -11,15 +11,17 @@ class RationOptimizerTest {
 
     private final RationOptimizer optimizer = new RationOptimizer();
 
+    private static Product product(String id, double price, double grams,
+                                   double kcal, double protein, double fat, double carbs) {
+        return new Product(id, null, id, null, "Biedronka", null,
+                price, grams, kcal, protein, fat, carbs, null, "seed", null);
+    }
+
     // Дешеве джерело калорій, дороге джерело білка, і "золота середина"
-    private final Product rice = new Product(
-            "rice", "Ryż", "Biedronka", "zboża", 5.50, 1000, 349, 7.0, 0.7, 78.0);
-    private final Product chicken = new Product(
-            "chicken", "Filet z kurczaka", "Biedronka", "mięso", 21.90, 1000, 112, 21.5, 2.6, 0);
-    private final Product oats = new Product(
-            "oats", "Płatki owsiane", "Biedronka", "zboża", 2.79, 500, 372, 12.0, 7.0, 60.0);
-    private final Product oil = new Product(
-            "oil", "Olej", "Biedronka", "tłuszcze", 7.99, 920, 884, 0, 100.0, 0);
+    private final Product rice = product("rice", 5.50, 1000, 349, 7.0, 0.7, 78.0);
+    private final Product chicken = product("chicken", 21.90, 1000, 112, 21.5, 2.6, 0);
+    private final Product oats = product("oats", 2.79, 500, 372, 12.0, 7.0, 60.0);
+    private final Product oil = product("oil", 7.99, 920, 884, 0, 100.0, 0);
 
     private RationRequest request(double kcal, double protein, Double maxFat, double maxPerProduct) {
         return new RationRequest(kcal, protein, maxFat, null, List.of(), maxPerProduct);

@@ -13,6 +13,8 @@ public record RationResult(
             String productId,
             String name,
             String store,
+            String category,
+            String imageUrl,
             double grams,
             double costZl,
             double kcal,

@@ -9,12 +9,12 @@ class ProductTest {
 
     // 1 kg філе за 20 zł: 21.5 г білка / 100 г, 112 ккал / 100 г
     private final Product chicken = new Product(
-            "test-chicken", "Filet z kurczaka", "Biedronka", "mięso",
-            20.00, 1000, 112, 21.5, 2.6, 0);
+            "test-chicken", null, "Filet z kurczaka", null, "Biedronka", "m'ясо",
+            20.00, 1000, 112, 21.5, 2.6, 0, null, "seed", null);
 
     private final Product oil = new Product(
-            "test-oil", "Olej", "Biedronka", "tłuszcze",
-            8.00, 1000, 884, 0, 100, 0);
+            "test-oil", null, "Olej", null, "Biedronka", "жири",
+            8.00, 1000, 884, 0, 100, 0, null, "seed", null);
 
     @Test
     void pricePer100gIsPackagePriceScaledToGrams() {
@@ -42,5 +42,12 @@ class ProductTest {
     void zeroProteinProductHasNullProteinPriceInsteadOfInfinity() {
         assertThat(oil.pricePer100gProtein()).isNull();
         assertThat(oil.proteinPerZloty()).isZero();
+    }
+
+    @Test
+    void missingPriceSourceDefaultsToSeed() {
+        Product p = new Product("x", null, "Test", null, "Lidl", null,
+                1, 100, 100, 1, 1, 1, null, null, null);
+        assertThat(p.priceSource()).isEqualTo("seed");
     }
 }
