@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitCollector — дешевий білок і калорії</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1d2638;
+    --text: #e8ecf4;
+    --muted: #8b96ab;
+    --accent: #4ade80;
+    --accent2: #60a5fa;
+    --border: #2a3550;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 28px 24px 12px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 24px 64px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 20px;
+  }
+  h2 { margin: 0 0 14px; font-size: 18px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 14px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .15s;
+  }
+  .chip.active { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+  select, input[type=number] {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 14px;
+  }
+  input[type=number] { width: 110px; }
+  label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 8px 10px; text-align: right; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  tbody tr:nth-child(odd) { background: rgba(255,255,255,.02); }
+  tbody tr:hover { background: rgba(96,165,250,.08); }
+  .best { color: var(--accent); font-weight: 600; }
+  .store-tag { font-size: 11.5px; padding: 2px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--border); color: var(--muted); }
+  .form-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  button.primary {
+    background: var(--accent2);
+    color: #0b1020;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.1); }
+  .totals {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;
+  }
+  .stat {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    min-width: 110px;
+  }
+  .stat .v { font-size: 20px; font-weight: 700; }
+  .stat .v.cost { color: var(--accent); }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .error { color: #f87171; margin-top: 12px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 14px; }
+  @media (max-width: 640px) { header, main { padding-left: 14px; padding-right: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fit<span>Collector</span> 🥦</h1>
+  <p class="sub">Найдешевший білок і калорії в Biedronka, Stokrotka та Lidl — і раціон на день за мінімальну ціну.</p>
+</header>
+<main>
+
+  <section>
+    <h2>📊 Продукти</h2>
+    <div class="controls">
+      <div class="chips" id="storeChips"></div>
+      <label>Сортування
+        <select id="sortSelect">
+          <option value="pricePer100gProtein">💰 zł за 100 г білка</option>
+          <option value="pricePer1000Kcal">💰 zł за 1000 ккал</option>
+          <option value="proteinPerZloty">💪 білка за 1 zł</option>
+          <option value="kcalPerZloty">🔥 ккал за 1 zł</option>
+          <option value="pricePer100g">ціна за 100 г</option>
+          <option value="price">ціна упаковки</option>
+          <option value="name">назва</option>
+        </select>
+      </label>
+    </div>
+    <div class="table-wrap">
+      <table id="productTable">
+        <thead>
+          <tr>
+            <th>Продукт</th><th>Магазин</th><th>Ціна</th><th>Ккал/100г</th><th>Б/100г</th><th>Ж/100г</th><th>В/100г</th>
+            <th>zł/100г білка</th><th>zł/1000 ккал</th><th>білка за 1 zł</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>🍱 Скласти раціон за мінімальну ціну</h2>
+    <div class="form-row">
+      <label>Калорії (ккал/день)
+        <input type="number" id="kcal" value="1200" min="300" step="50">
+      </label>
+      <label>Мін. білок (г)
+        <input type="number" id="protein" value="90" min="0" step="5">
+      </label>
+      <label>Макс. жири (г, опц.)
+        <input type="number" id="fat" placeholder="—" min="0" step="5">
+      </label>
+      <label>Макс. вуглеводи (г, опц.)
+        <input type="number" id="carbs" placeholder="—" min="0" step="10">
+      </label>
+      <label>Макс. одного продукту (г)
+        <input type="number" id="maxPer" value="500" min="100" step="50">
+      </label>
+      <button class="primary" id="composeBtn">Скласти раціон</button>
+    </div>
+    <div id="rationError" class="error" style="display:none"></div>
+    <div id="rationResult" style="display:none">
+      <div class="totals" id="rationTotals"></div>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr><th>Продукт</th><th>Магазин</th><th>Грамів</th><th>Ціна, zł</th><th>Ккал</th><th>Білок, г</th><th>Жири, г</th><th>Вугл., г</th></tr>
+          </thead>
+          <tbody id="rationBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="note">Раціон складається лише з магазинів, вибраних у фільтрі вище. Ціни та КБЖВ орієнтовні — редагуйте <code>products.json</code> під актуальні акції.</p>
+  </section>
+
+</main>
+<script>
+const state = { stores: [], activeStores: new Set(), sort: 'pricePer100gProtein' };
+
+const fmt = (v, d = 2) => v == null ? '—' : v.toFixed(d);
+
+async function loadStores() {
+  const stores = await (await fetch('/api/stores')).json();
+  state.stores = stores;
+  state.activeStores = new Set(stores);
+  const box = document.getElementById('storeChips');
+  box.innerHTML = '';
+  for (const s of stores) {
+    const b = document.createElement('button');
+    b.className = 'chip active';
+    b.textContent = s;
+    b.onclick = () => {
+      if (state.activeStores.has(s) && state.activeStores.size > 1) {
+        state.activeStores.delete(s);
+        b.classList.remove('active');
+      } else {
+        state.activeStores.add(s);
+        b.classList.add('active');
+      }
+      loadProducts();
+    };
+    box.appendChild(b);
+  }
+}
+
+async function loadProducts() {
+  const params = new URLSearchParams();
+  for (const s of state.activeStores) params.append('store', s);
+  params.set('sort', state.sort);
+  const products = await (await fetch('/api/products?' + params)).json();
+  const tbody = document.querySelector('#productTable tbody');
+  tbody.innerHTML = '';
+  products.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const best = i < 3 ? ' class="best"' : '';
+    tr.innerHTML =
+      `<td>${p.name}</td>` +
+      `<td><span class="store-tag">${p.store}</span></td>` +
+      `<td>${fmt(p.packagePriceZl)} zł</td>` +
+      `<td>${p.kcalPer100g}</td>` +
+      `<td>${p.proteinPer100g}</td>` +
+      `<td>${p.fatPer100g}</td>` +
+      `<td>${p.carbsPer100g}</td>` +
+      `<td${best}>${fmt(p.pricePer100gProtein)}</td>` +
+      `<td>${fmt(p.pricePer1000Kcal)}</td>` +
+      `<td>${fmt(p.proteinPerZloty, 1)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('sortSelect').onchange = e => {
+  state.sort = e.target.value;
+  loadProducts();
+};
+
+document.getElementById('composeBtn').onclick = async () => {
+  const num = id => {
+    const v = document.getElementById(id).value;
+    return v === '' ? null : Number(v);
+  };
+  const body = {
+    targetKcal: num('kcal') ?? 0,
+    minProteinG: num('protein') ?? 0,
+    maxFatG: num('fat'),
+    maxCarbsG: num('carbs'),
+    maxGramsPerProduct: num('maxPer') ?? 500,
+    stores: [...state.activeStores]
+  };
+  const res = await (await fetch('/api/ration', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })).json();
+
+  const err = document.getElementById('rationError');
+  const box = document.getElementById('rationResult');
+  if (!res.feasible) {
+    err.textContent = res.message;
+    err.style.display = 'block';
+    box.style.display = 'none';
+    return;
+  }
+  err.style.display = 'none';
+  box.style.display = 'block';
+
+  const t = res.totals;
+  document.getElementById('rationTotals').innerHTML =
+    `<div class="stat"><div class="v cost">${t.costZl.toFixed(2)} zł</div><div class="k">ціна за день</div></div>` +
+    `<div class="stat"><div class="v">${t.kcal}</div><div class="k">ккал</div></div>` +
+    `<div class="stat"><div class="v">${t.proteinG} г</div><div class="k">білок</div></div>` +
+    `<div class="stat"><div class="v">${t.fatG} г</div><div class="k">жири</div></div>` +
+    `<div class="stat"><div class="v">${t.carbsG} г</div><div class="k">вуглеводи</div></div>`;
+
+  const tbody = document.getElementById('rationBody');
+  tbody.innerHTML = '';
+  for (const it of res.items) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td>${it.name}</td>` +
+      `<td><span class="store-tag">${it.store}</span></td>` +
+      `<td>${it.grams}</td>` +
+      `<td>${it.costZl.toFixed(2)}</td>` +
+      `<td>${it.kcal}</td>` +
+      `<td>${it.proteinG}</td>` +
+      `<td>${it.fatG}</td>` +
+      `<td>${it.carbsG}</td>`;
+    tbody.appendChild(tr);
+  }
+};
+
+loadStores().then(loadProducts);
+</script>
+</body>
+</html>
