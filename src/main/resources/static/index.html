@@ -3,206 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FitCollector — дешевий білок і калорії</title>
+<title>FitCollector</title>
 <style>
   :root {
-    --bg: #0b0e14;
-    --bg2: #10141d;
-    --card: #151b26;
-    --card-hover: #1a2231;
-    --line: #232c3d;
-    --text: #eef2f8;
-    --muted: #93a0b4;
-    --dim: #5c6a80;
-    --green: #34d399;
-    --green-dim: rgba(52,211,153,.12);
-    --blue: #60a5fa;
-    --amber: #fbbf24;
-    --red: #f87171;
-    --radius: 14px;
+    --bg: #101216;
+    --card: #17191f;
+    --card2: #1d2026;
+    --line: #262a32;
+    --line2: #333842;
+    --text: #e9ebee;
+    --muted: #9aa1ac;
+    --dim: #6b7280;
+    --radius: 12px;
   }
   * { box-sizing: border-box; margin: 0; }
-  html { scroll-behavior: smooth; }
   body {
     font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    background:
-      radial-gradient(900px 400px at 80% -10%, rgba(52,211,153,.07), transparent 60%),
-      radial-gradient(700px 400px at 10% -10%, rgba(96,165,250,.07), transparent 60%),
-      var(--bg);
+    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     font-size: 15px;
     line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px 80px; }
 
   /* ── Topbar ─────────────────────────────── */
-  .topbar {
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 22px 0 18px;
-  }
-  .logo { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
-  .logo em { font-style: normal; background: linear-gradient(90deg, var(--green), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .statusline { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
-  .dot.busy { background: var(--amber); animation: pulse 1.2s infinite; }
-  @keyframes pulse { 50% { opacity: .35; } }
+  .topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 24px 0 16px; }
+  .logo { font-size: 21px; font-weight: 750; letter-spacing: -.4px; }
+  .statusline { color: var(--dim); font-size: 13px; flex: 1; min-width: 220px; }
+  .statusline .busy { color: var(--muted); }
   .btn-ghost {
     background: none; border: 1px solid var(--line); color: var(--muted);
-    padding: 7px 14px; border-radius: 10px; font-size: 13px; cursor: pointer;
-    transition: .15s;
+    padding: 7px 14px; border-radius: 9px; font-size: 13px; cursor: pointer; transition: .15s;
   }
-  .btn-ghost:hover { color: var(--text); border-color: var(--dim); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--line2); }
 
   /* ── Tabs ───────────────────────────────── */
-  .tabs { display: flex; gap: 6px; margin: 6px 0 20px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 4px; margin: 4px 0 20px; border-bottom: 1px solid var(--line); }
   .tab {
-    background: none; border: none; color: var(--muted); font-size: 15px; font-weight: 600;
-    padding: 10px 18px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
-    transition: .15s;
+    background: none; border: none; color: var(--dim); font-size: 14.5px; font-weight: 600;
+    padding: 10px 16px 12px; cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: .15s;
   }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .tab:hover { color: var(--muted); }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
 
   /* ── Controls ───────────────────────────── */
-  .controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .search {
-    flex: 1; min-width: 240px; position: relative;
-  }
+  .search { flex: 1; min-width: 240px; position: relative; }
   .search input {
     width: 100%; background: var(--card); border: 1px solid var(--line); color: var(--text);
-    border-radius: 12px; padding: 11px 14px 11px 40px; font-size: 14px; outline: none;
-    transition: border-color .15s;
+    border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; transition: border-color .15s;
   }
-  .search input:focus { border-color: var(--green); }
-  .search::before {
-    content: "🔍"; position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
-    font-size: 14px; opacity: .6;
-  }
+  .search input::placeholder { color: var(--dim); }
+  .search input:focus { border-color: var(--line2); }
   select {
     background: var(--card); color: var(--text); border: 1px solid var(--line);
-    border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: none; cursor: pointer;
+    border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; cursor: pointer;
   }
   .chip {
-    border: 1px solid var(--line); background: var(--card); color: var(--muted);
-    padding: 7px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line); background: none; color: var(--muted);
+    padding: 6px 13px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 500;
     transition: .15s; white-space: nowrap;
   }
-  .chip:hover { color: var(--text); border-color: var(--dim); }
-  .chip.active { background: var(--green-dim); color: var(--green); border-color: var(--green); }
-  .chip small { opacity: .65; font-weight: 400; }
-  .chiprow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip:hover { color: var(--text); border-color: var(--line2); }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+  .chiprow { display: flex; gap: 7px; flex-wrap: wrap; }
+  .resultcount { color: var(--dim); font-size: 13px; margin-bottom: 12px; }
 
   /* ── Product grid ───────────────────────── */
-  .grid {
-    display: grid; gap: 14px;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .pcard {
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    overflow: hidden; display: flex; flex-direction: column; position: relative;
-    transition: transform .15s, border-color .15s, box-shadow .15s;
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: border-color .15s;
   }
-  .pcard:hover { transform: translateY(-3px); border-color: var(--dim); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .pcard:hover { border-color: var(--line2); }
   .pimg {
-    height: 150px; background: #fff; display: flex; align-items: center; justify-content: center;
+    height: 148px; background: #fff; display: flex; align-items: center; justify-content: center;
     position: relative;
   }
-  .pimg img { max-width: 88%; max-height: 88%; object-fit: contain; }
-  .pimg.noimg { background: linear-gradient(135deg, #1b2436, #131a28); font-size: 44px; }
-  .rankbadge {
-    position: absolute; top: 10px; left: 10px; background: var(--green); color: #06281b;
-    font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 8px;
-  }
-  .srcbadge {
-    position: absolute; top: 10px; right: 10px; font-size: 11px; font-weight: 600;
-    padding: 3px 8px; border-radius: 7px; backdrop-filter: blur(4px);
-  }
-  .srcbadge.real { background: rgba(52,211,153,.9); color: #06281b; }
-  .srcbadge.seed { background: rgba(15,20,32,.72); color: var(--muted); }
-  .pbody { padding: 13px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .pimg img { max-width: 86%; max-height: 86%; object-fit: contain; }
+  .pimg.noimg { background: var(--card2); font-size: 38px; opacity: .85; }
+  .pbody { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .pname {
-    font-size: 14px; font-weight: 600; line-height: 1.3;
+    font-size: 13.5px; font-weight: 600; line-height: 1.35;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    min-height: 2.6em;
+    min-height: 2.7em;
   }
-  .pmeta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); flex-wrap: wrap; }
-  .storetag {
-    font-size: 11px; font-weight: 600; color: var(--blue); background: rgba(96,165,250,.1);
-    border-radius: 6px; padding: 2px 8px;
-  }
+  .pmeta { font-size: 12px; color: var(--dim); display: flex; gap: 6px; flex-wrap: wrap; }
+  .pmeta .store { color: var(--muted); font-weight: 600; }
   .priceline { display: flex; align-items: baseline; gap: 8px; margin-top: auto; }
-  .price { font-size: 20px; font-weight: 800; }
+  .price { font-size: 19px; font-weight: 750; letter-spacing: -.3px; }
   .per100 { color: var(--dim); font-size: 12px; }
   .metric {
-    background: var(--green-dim); border-radius: 10px; padding: 8px 12px;
+    border-top: 1px solid var(--line); padding-top: 9px;
     display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
   }
-  .metric b { color: var(--green); font-size: 16px; }
-  .metric span { font-size: 11.5px; color: var(--muted); }
-  .macros { display: flex; gap: 6px; font-size: 11.5px; color: var(--muted); }
-  .macros b { color: var(--text); font-weight: 600; }
-  .macros div { background: var(--bg2); border-radius: 7px; padding: 4px 8px; flex: 1; text-align: center; }
+  .metric b { font-size: 15px; font-weight: 700; }
+  .metric span { font-size: 11.5px; color: var(--dim); }
+  .metric.na b { color: var(--dim); font-weight: 500; font-size: 12.5px; }
+  .macros { display: flex; gap: 5px; font-size: 11px; color: var(--dim); }
+  .macros b { color: var(--muted); font-weight: 600; }
+  .macros div { background: var(--card2); border-radius: 6px; padding: 3px 0; flex: 1; text-align: center; }
 
   /* ── Ration ─────────────────────────────── */
-  .panel {
-    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 22px;
-  }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
   .formgrid { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
   .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+  .field label { font-size: 12.5px; color: var(--dim); font-weight: 500; }
   .field input {
-    background: var(--bg2); border: 1px solid var(--line); color: var(--text);
-    border-radius: 10px; padding: 10px 12px; font-size: 15px; width: 130px; outline: none;
+    background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 9px; padding: 10px 12px; font-size: 15px; width: 124px; outline: none;
   }
-  .field input:focus { border-color: var(--green); }
+  .field input:focus { border-color: var(--line2); }
   .btn {
-    background: linear-gradient(90deg, var(--green), #2dd4bf); color: #06281b;
-    border: none; border-radius: 12px; padding: 12px 28px; font-size: 15px; font-weight: 700;
-    cursor: pointer; transition: .15s;
+    background: var(--text); color: var(--bg); border: none; border-radius: 10px;
+    padding: 11px 26px; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: .15s;
   }
-  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
-  .btn:disabled { opacity: .5; cursor: wait; transform: none; }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .45; cursor: wait; }
 
-  .totals { display: flex; gap: 12px; flex-wrap: wrap; margin: 22px 0 6px; }
+  .totals { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 6px; }
   .stat {
-    background: var(--bg2); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 18px; min-width: 120px; flex: 1; max-width: 190px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 11px;
+    padding: 12px 18px; min-width: 118px; flex: 1; max-width: 185px;
   }
-  .stat .v { font-size: 22px; font-weight: 800; }
-  .stat .v.cost { color: var(--green); }
-  .stat .k { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .bar { height: 4px; background: var(--line); border-radius: 4px; margin-top: 8px; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--green); border-radius: 4px; transition: width .4s; }
+  .stat .v { font-size: 21px; font-weight: 750; letter-spacing: -.3px; }
+  .stat .k { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .bar { height: 3px; background: var(--line); border-radius: 3px; margin-top: 9px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--muted); border-radius: 3px; transition: width .4s; }
 
-  .ritem {
-    display: flex; align-items: center; gap: 14px; padding: 12px 0;
-    border-bottom: 1px solid var(--line);
-  }
+  .ritem { display: flex; align-items: center; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); }
   .ritem:last-child { border-bottom: none; }
   .rimg {
-    width: 54px; height: 54px; border-radius: 10px; background: #fff; flex: none;
-    display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 24px;
+    width: 52px; height: 52px; border-radius: 9px; background: #fff; flex: none;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 22px;
   }
-  .rimg img { max-width: 90%; max-height: 90%; object-fit: contain; }
-  .rimg.noimg { background: var(--bg2); }
+  .rimg img { max-width: 88%; max-height: 88%; object-fit: contain; }
+  .rimg.noimg { background: var(--card2); }
   .rinfo { flex: 1; min-width: 0; }
   .rname { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .rsub { font-size: 12px; color: var(--dim); margin-top: 2px; }
-  .rgrams { font-size: 15px; font-weight: 700; text-align: right; min-width: 64px; }
-  .rcost { font-size: 15px; font-weight: 700; color: var(--green); text-align: right; min-width: 76px; }
-  .rmacro { font-size: 12px; color: var(--muted); text-align: right; min-width: 150px; }
+  .rgrams { font-size: 14.5px; font-weight: 700; text-align: right; min-width: 62px; }
+  .rcost { font-size: 14.5px; font-weight: 700; text-align: right; min-width: 74px; }
+  .rmacro { font-size: 12px; color: var(--dim); text-align: right; min-width: 150px; }
 
-  .empty, .error-box { text-align: center; color: var(--muted); padding: 44px 20px; }
-  .error-box { color: var(--red); }
-  .skeleton { height: 300px; border-radius: var(--radius); background: linear-gradient(100deg, var(--card) 40%, var(--card-hover) 50%, var(--card) 60%); background-size: 200% 100%; animation: shine 1.2s infinite; }
+  .empty, .error-box { text-align: center; color: var(--dim); padding: 44px 20px; }
+  .error-box { color: var(--muted); }
+  .skeleton {
+    height: 300px; border-radius: var(--radius);
+    background: linear-gradient(100deg, var(--card) 40%, var(--card2) 50%, var(--card) 60%);
+    background-size: 200% 100%; animation: shine 1.2s infinite;
+  }
   @keyframes shine { to { background-position: -200% 0; } }
-  .hint { font-size: 12px; color: var(--dim); margin-top: 16px; }
+  .hint { font-size: 12px; color: var(--dim); margin-top: 14px; }
   @media (max-width: 700px) {
     .rmacro { display: none; }
-    .field input { width: 100px; }
+    .field input { width: 98px; }
   }
 </style>
 </head>
@@ -210,9 +170,9 @@
 <div class="wrap">
 
   <div class="topbar">
-    <div class="logo">Fit<em>Collector</em></div>
-    <div class="statusline"><span class="dot" id="statusDot"></span><span id="statusText">Завантаження…</span></div>
-    <button class="btn-ghost" id="refreshBtn" title="Оновити ціни з Open Prices та Open Food Facts">⟳ Оновити ціни</button>
+    <div class="logo">FitCollector</div>
+    <div class="statusline" id="statusText">Завантаження…</div>
+    <button class="btn-ghost" id="refreshBtn" title="Оновити каталог: скрапінг Biedronka + Open Prices + Open Food Facts">Оновити ціни</button>
   </div>
 
   <div class="tabs">
@@ -226,10 +186,10 @@
       <div class="row">
         <div class="search"><input id="q" placeholder="Пошук: twaróg, skyr, płatki…" autocomplete="off"></div>
         <select id="sortSelect">
-          <option value="pricePer100gProtein">💪 найдешевший білок (zł/100 г білка)</option>
-          <option value="pricePer1000Kcal">🔥 найдешевші калорії (zł/1000 ккал)</option>
-          <option value="proteinPerZloty">💰 найбільше білка за 1 zł</option>
-          <option value="kcalPerZloty">💰 найбільше ккал за 1 zł</option>
+          <option value="pricePer100gProtein">найдешевший білок — zł за 100 г білка</option>
+          <option value="pricePer1000Kcal">найдешевші калорії — zł за 1000 ккал</option>
+          <option value="proteinPerZloty">найбільше білка за 1 zł</option>
+          <option value="kcalPerZloty">найбільше ккал за 1 zł</option>
           <option value="pricePer100g">ціна за 100 г</option>
           <option value="price">ціна упаковки</option>
           <option value="name">за назвою</option>
@@ -238,8 +198,9 @@
       <div class="row"><div class="chiprow" id="storeChips"></div></div>
       <div class="row"><div class="chiprow" id="catChips"></div></div>
     </div>
+    <div class="resultcount" id="resultCount"></div>
     <div class="grid" id="grid"></div>
-    <div class="empty" id="emptyState" style="display:none">Нічого не знайдено 🤷</div>
+    <div class="empty" id="emptyState" style="display:none">Нічого не знайдено</div>
   </div>
 
   <!-- ── RATION ── -->
@@ -251,16 +212,16 @@
         <div class="field"><label>Макс. жири, г</label><input type="number" id="fat" placeholder="—" min="0" step="5"></div>
         <div class="field"><label>Макс. вугл., г</label><input type="number" id="carbs" placeholder="—" min="0" step="10"></div>
         <div class="field"><label>Макс. 1 продукту, г</label><input type="number" id="maxPer" value="400" min="100" step="50"></div>
-        <button class="btn" id="composeBtn">Скласти раціон 🍱</button>
+        <button class="btn" id="composeBtn">Скласти раціон</button>
       </div>
-      <div class="hint">Береться з магазинів, вибраних у вкладці «Продукти». Оптимізатор шукає мінімальну ціну за день (лінійне програмування, задача Стіглера).</div>
+      <div class="hint">Береться з магазинів, вибраних у вкладці «Продукти» (тільки продукти з відомою КБЖВ). Оптимізатор шукає мінімальну ціну за день.</div>
     </div>
 
     <div class="error-box" id="rationError" style="display:none"></div>
 
     <div id="rationResult" style="display:none">
       <div class="totals" id="rationTotals"></div>
-      <div class="panel" style="margin-top:14px" id="rationList"></div>
+      <div class="panel" style="margin-top:12px" id="rationList"></div>
     </div>
   </div>
 
@@ -272,10 +233,10 @@ const state = {
   sort: 'pricePer100gProtein', q: ''
 };
 
-const CAT_EMOJI = { 'молочка':'🥛','йогурти':'🥣','сир':'🧀','яйця':'🥚',"м'ясо":'🍗','риба':'🐟','бобові':'🫘','крупи':'🌾','хліб':'🍞','фрукти':'🍌','овочі':'🥦','жири':'🫒','снеки':'🥨','напої':'🥤','солодке':'🍫','інше':'🛒',
-  'nabiał':'🥛','mięso':'🍗','ryby':'🐟','zboża':'🌾','strączkowe':'🫘','owoce':'🍌','pieczywo':'🍞','tłuszcze':'🫒' };
+const CAT_EMOJI = { 'молочка':'🥛','йогурти':'🥣','сир':'🧀','яйця':'🥚',"м'ясо":'🍗','риба':'🐟','бобові':'🫘','крупи':'🌾','хліб':'🍞','фрукти':'🍌','овочі':'🥦','жири':'🫒','снеки':'🥨','напої':'🥤','солодке':'🍫','інше':'🛒' };
 
 const fmt = (v, d = 2) => v == null ? '—' : Number(v).toFixed(d);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
 /* ── tabs ── */
@@ -291,12 +252,10 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => showTab(t.datas
 async function loadStatus() {
   try {
     const s = await (await fetch('/api/status')).json();
-    const dot = document.getElementById('statusDot');
     const busy = s.ingest.state === 'running';
-    dot.className = 'dot' + (busy ? ' busy' : '');
-    document.getElementById('statusText').textContent =
-      `${s.productsTotal} продуктів · ${s.realPrices} з реальними цінами (Open Prices)` +
-      (busy ? ` · ${s.ingest.message}` : '');
+    document.getElementById('statusText').innerHTML =
+      `${s.productsTotal} продуктів · ${s.withMacros} з КБЖВ` +
+      (busy ? ` · <span class="busy">${esc(s.ingest.message)}</span>` : '');
     if (busy) setTimeout(loadStatus, 4000);
     else if (s.ingest.state === 'done') { loadFilters(); loadProducts(); }
   } catch (e) { /* ignore */ }
@@ -317,10 +276,9 @@ async function loadFilters() {
 
   const sBox = document.getElementById('storeChips');
   sBox.innerHTML = '';
-  const allBtn = chipEl('Всі магазини', state.activeStores.size === stores.length, () => {
+  sBox.appendChild(chipEl('Всі магазини', state.activeStores.size === stores.length, () => {
     state.activeStores = new Set(stores); loadFilters(); loadProducts();
-  });
-  sBox.appendChild(allBtn);
+  }));
   for (const s of stores) {
     sBox.appendChild(chipEl(s, state.activeStores.has(s) && state.activeStores.size !== stores.length, () => {
       if (state.activeStores.size === stores.length) state.activeStores = new Set([s]);
@@ -334,7 +292,7 @@ async function loadFilters() {
   cBox.innerHTML = '';
   cBox.appendChild(chipEl('Всі категорії', !state.activeCategory, () => { state.activeCategory = null; loadFilters(); loadProducts(); }));
   for (const c of cats) {
-    cBox.appendChild(chipEl(`${CAT_EMOJI[c] || ''} ${c}`, state.activeCategory === c, () => {
+    cBox.appendChild(chipEl(c, state.activeCategory === c, () => {
       state.activeCategory = state.activeCategory === c ? null : c; loadFilters(); loadProducts();
     }));
   }
@@ -360,49 +318,56 @@ async function loadProducts() {
 
   grid.innerHTML = '';
   document.getElementById('emptyState').style.display = products.length ? 'none' : '';
-  products.forEach((p, i) => grid.appendChild(cardEl(p, i)));
+  document.getElementById('resultCount').textContent = products.length ? products.length + ' продуктів' : '';
+  const frag = document.createDocumentFragment();
+  products.forEach(p => frag.appendChild(cardEl(p)));
+  grid.appendChild(frag);
 }
 
 function metricLine(p) {
   switch (state.sort) {
-    case 'pricePer1000Kcal': return [fmt(p.pricePer1000Kcal) + ' zł', 'за 1000 ккал'];
-    case 'proteinPerZloty':  return [fmt(p.proteinPerZloty, 1) + ' г', 'білка за 1 zł'];
-    case 'kcalPerZloty':     return [fmt(p.kcalPerZloty, 0) + ' ккал', 'за 1 zł'];
-    case 'pricePer100g':     return [fmt(p.pricePer100g) + ' zł', 'за 100 г'];
-    default:                 return [fmt(p.pricePer100gProtein) + ' zł', 'за 100 г білка'];
+    case 'pricePer1000Kcal': return [p.pricePer1000Kcal, fmt(p.pricePer1000Kcal) + ' zł', 'за 1000 ккал'];
+    case 'proteinPerZloty':  return [p.kcalPer100g > 0 ? p.proteinPerZloty : null, fmt(p.proteinPerZloty, 1) + ' г', 'білка за 1 zł'];
+    case 'kcalPerZloty':     return [p.kcalPer100g > 0 ? p.kcalPerZloty : null, fmt(p.kcalPerZloty, 0) + ' ккал', 'за 1 zł'];
+    case 'pricePer100g':     return [p.pricePer100g, fmt(p.pricePer100g) + ' zł', 'за 100 г'];
+    case 'price':
+    case 'name':             return [p.pricePer100g, fmt(p.pricePer100g) + ' zł', 'за 100 г'];
+    default:                 return [p.pricePer100gProtein, fmt(p.pricePer100gProtein) + ' zł', 'за 100 г білка'];
   }
 }
 
-function cardEl(p, rank) {
+function cardEl(p) {
   const d = document.createElement('div');
   d.className = 'pcard';
   const emoji = CAT_EMOJI[p.category] || '🛒';
-  const [mv, ml] = metricLine(p);
-  const real = p.priceSource === 'open-prices';
+  const [mraw, mv, ml] = metricLine(p);
+  const hasMacros = p.kcalPer100g > 0;
   d.innerHTML =
     `<div class="pimg${p.imageUrl ? '' : ' noimg'}">` +
-      (p.imageUrl ? `<img loading="lazy" src="${p.imageUrl}" alt="" onerror="this.parentElement.classList.add('noimg');this.remove();this.parentElement.append('${emoji}')">` : emoji) +
-      (rank < 3 ? `<div class="rankbadge">ТОП-${rank + 1}</div>` : '') +
-      `<div class="srcbadge ${real ? 'real' : 'seed'}" title="${real ? 'Реальна ціна з чека, ' + (p.priceDate || '') : 'Орієнтовна ціна з локальної бази'}">${real ? '✓ реальна' : '≈ орієнтовна'}</div>` +
+      (p.imageUrl ? `<img loading="lazy" src="${esc(p.imageUrl)}" alt="" onerror="this.parentElement.classList.add('noimg');this.parentElement.textContent='${emoji}'">` : emoji) +
     `</div>` +
     `<div class="pbody">` +
       `<div class="pname">${esc(p.name)}</div>` +
-      `<div class="pmeta"><span class="storetag">${esc(p.store)}</span>` +
-        (p.brand ? `<span>${esc(p.brand)}</span>` : '') +
-        `<span>${p.packageGrams} г</span></div>` +
-      `<div class="priceline"><span class="price">${fmt(p.packagePriceZl)} zł</span>` +
-        `<span class="per100">${fmt(p.pricePer100g)} zł/100г</span></div>` +
-      `<div class="metric"><b>${mv}</b><span>${ml}</span></div>` +
-      `<div class="macros">` +
-        `<div><b>${p.kcalPer100g}</b> ккал</div>` +
-        `<div>Б <b>${p.proteinPer100g}</b></div>` +
-        `<div>Ж <b>${p.fatPer100g}</b></div>` +
-        `<div>В <b>${p.carbsPer100g}</b></div>` +
+      `<div class="pmeta"><span class="store">${esc(p.store)}</span>` +
+        `<span>·</span><span>${Math.round(p.packageGrams)} г</span>` +
+        (p.brand && !p.name.toLowerCase().startsWith(p.brand.toLowerCase()) ? `<span>·</span><span>${esc(p.brand)}</span>` : '') +
       `</div>` +
+      `<div class="priceline"><span class="price">${fmt(p.packagePriceZl)} zł</span>` +
+        `<span class="per100">${fmt(p.pricePer100g)} zł/100 г</span></div>` +
+      (mraw != null
+        ? `<div class="metric"><b>${mv}</b><span>${ml}</span></div>`
+        : `<div class="metric na"><b>без даних КБЖВ</b><span></span></div>`) +
+      (hasMacros
+        ? `<div class="macros">` +
+            `<div><b>${p.kcalPer100g}</b> ккал</div>` +
+            `<div>Б <b>${p.proteinPer100g}</b></div>` +
+            `<div>Ж <b>${p.fatPer100g}</b></div>` +
+            `<div>В <b>${p.carbsPer100g}</b></div>` +
+          `</div>`
+        : '') +
     `</div>`;
   return d;
 }
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 document.getElementById('sortSelect').onchange = e => { state.sort = e.target.value; loadProducts(); };
 document.getElementById('q').oninput = debounce(e => { state.q = e.target.value.trim(); loadProducts(); }, 300);
@@ -430,14 +395,14 @@ document.getElementById('composeBtn').onclick = async () => {
   const err = document.getElementById('rationError');
   const box = document.getElementById('rationResult');
   if (!res.feasible) {
-    err.textContent = '😕 ' + res.message; err.style.display = ''; box.style.display = 'none';
+    err.textContent = res.message; err.style.display = ''; box.style.display = 'none';
     return;
   }
   err.style.display = 'none'; box.style.display = '';
 
   const t = res.totals, tk = body.targetKcal, tp = body.minProteinG;
   document.getElementById('rationTotals').innerHTML =
-    stat(t.costZl.toFixed(2) + ' zł', 'ціна за день', null, 'cost') +
+    stat(t.costZl.toFixed(2) + ' zł', 'ціна за день') +
     stat(t.kcal, 'ккал', Math.min(100, t.kcal / tk * 100)) +
     stat(t.proteinG + ' г', 'білок', tp ? Math.min(100, t.proteinG / tp * 100) : null) +
     stat(t.fatG + ' г', 'жири') +
@@ -451,7 +416,7 @@ document.getElementById('composeBtn').onclick = async () => {
     const emoji = CAT_EMOJI[it.category] || '🍽';
     row.innerHTML =
       `<div class="rimg${it.imageUrl ? '' : ' noimg'}">` +
-        (it.imageUrl ? `<img loading="lazy" src="${it.imageUrl}" alt="">` : emoji) + `</div>` +
+        (it.imageUrl ? `<img loading="lazy" src="${esc(it.imageUrl)}" alt="">` : emoji) + `</div>` +
       `<div class="rinfo"><div class="rname">${esc(it.name)}</div>` +
         `<div class="rsub">${esc(it.store)} · ${it.kcal} ккал</div></div>` +
       `<div class="rmacro">Б ${it.proteinG} · Ж ${it.fatG} · В ${it.carbsG}</div>` +
@@ -460,8 +425,8 @@ document.getElementById('composeBtn').onclick = async () => {
     list.appendChild(row);
   }
 };
-function stat(v, k, pct, extra) {
-  return `<div class="stat"><div class="v ${extra || ''}">${v}</div><div class="k">${k}</div>` +
+function stat(v, k, pct) {
+  return `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div>` +
     (pct != null ? `<div class="bar"><i style="width:${pct}%"></i></div>` : '') + `</div>`;
 }
 

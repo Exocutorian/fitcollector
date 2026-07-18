@@ -110,6 +110,22 @@ class CatalogMapperTest {
     }
 
     @Test
+    void biedronkaCategoryMapping() {
+        assertThat(CatalogMapper.categoryFromBiedronka("Nabiał", "Kefiry")).isEqualTo("йогурти");
+        assertThat(CatalogMapper.categoryFromBiedronka("Nabiał", "Sery żółte")).isEqualTo("сир");
+        assertThat(CatalogMapper.categoryFromBiedronka("Nabiał", "Twarogi")).isEqualTo("молочка");
+        assertThat(CatalogMapper.categoryFromBiedronka("Nabiał", "Jaja")).isEqualTo("яйця");
+        assertThat(CatalogMapper.categoryFromBiedronka("Mięso", "Drób")).isEqualTo("м'ясо");
+        assertThat(CatalogMapper.categoryFromBiedronka("Mięso", "Ryby")).isEqualTo("риба");
+        // "Konserwy" не повинні ставати сиром через підрядок "serw"
+        assertThat(CatalogMapper.categoryFromBiedronka("Artykuły spożywcze", "Produkty konserwowe"))
+                .isEqualTo("інше");
+        assertThat(CatalogMapper.categoryFromBiedronka("Artykuły spożywcze", "Produkty sypkie"))
+                .isEqualTo("крупи");
+        assertThat(CatalogMapper.categoryFromBiedronka(null, null)).isEqualTo("інше");
+    }
+
+    @Test
     void categoryMappingPrefersSpecificTags() {
         assertThat(CatalogMapper.category(List.of("en:dairies", "en:cheeses"))).isEqualTo("сир");
         assertThat(CatalogMapper.category(List.of("en:meats"))).isEqualTo("м'ясо");

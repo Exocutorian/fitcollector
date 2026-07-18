@@ -2,6 +2,7 @@ package com.fitcollector.ingest;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fitcollector.ingest.BiedronkaClient.Tile;
 import com.fitcollector.ingest.OpenFoodFactsClient.Macros;
 import com.fitcollector.ingest.OpenPricesClient.PriceEntry;
 import com.fitcollector.model.Product;
@@ -17,12 +18,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,15 +33,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * Оркеструє збирання каталогу: ціни з Open Prices → КБЖВ з OFF по штрихкоду →
- * валідний список продуктів. Результат кешується в data/catalog.json (TTL 24 год),
- * оновлення йде у фоновому потоці, статус доступний через /api/status.
+ * Збирає каталог з двох джерел:
+ *
+ * 1. Онлайн-магазин Biedronka — сотні продуктів з офіційними цінами та фото;
+ *    КБЖВ домаплюється з індексу Open Food Facts по (вага, бренд, назва).
+ * 2. Open Prices — краудсорсні ціни з чеків інших мереж (Lidl, Kaufland, …);
+ *    КБЖВ по штрихкоду з OFF.
+ *
+ * Результат кешується в data/catalog.json (TTL 24 год), оновлення — у фоні.
  */
 @Service
 public class CatalogIngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(CatalogIngestionService.class);
 
+    private final BiedronkaClient biedronkaClient;
+    private final OffMatchIndex offIndex;
     private final OpenPricesClient openPricesClient;
     private final OpenFoodFactsClient offClient;
     private final ObjectMapper objectMapper;
@@ -56,12 +66,16 @@ public class CatalogIngestionService {
     private volatile Consumer<List<Product>> onCatalogReady = products -> {};
 
     public CatalogIngestionService(
+            BiedronkaClient biedronkaClient,
+            OffMatchIndex offIndex,
             OpenPricesClient openPricesClient,
             OpenFoodFactsClient offClient,
             ObjectMapper objectMapper,
             @Value("${fitcollector.data-dir:./data}") String dataDir,
             @Value("${fitcollector.catalog-ttl-hours:24}") int catalogTtlHours,
-            @Value("${fitcollector.stores:Biedronka,Lidl,Stokrotka,Żabka,Kaufland,Carrefour,Netto,Aldi,Dino,Auchan,E. Leclerc}") List<String> stores) {
+            @Value("${fitcollector.stores:Lidl,Stokrotka,Żabka,Kaufland,Carrefour,Netto,Aldi,Dino,Auchan,E. Leclerc}") List<String> stores) {
+        this.biedronkaClient = biedronkaClient;
+        this.offIndex = offIndex;
         this.openPricesClient = openPricesClient;
         this.offClient = offClient;
         this.objectMapper = objectMapper;
@@ -113,7 +127,7 @@ public class CatalogIngestionService {
         return true;
     }
 
-    /** Щодоби перевіряє свіжість кешу; перший запуск — одразу після старту. */
+    /** Щогодини перевіряє свіжість кешу; перший запуск — одразу після старту. */
     @Scheduled(initialDelay = 5_000, fixedDelayString = "${fitcollector.refresh-check-millis:3600000}")
     public void refreshIfStale() {
         if (!diskCacheIsFresh()) {
@@ -122,6 +136,90 @@ public class CatalogIngestionService {
     }
 
     void refresh() {
+        try {
+            // КБЖВ з попереднього каталогу: раз знайдений матч не губиться,
+            // коли OFF тимчасово флейкає при наступному оновленні
+            Map<String, Product> previousWithMacros = new HashMap<>();
+            loadDiskCache().map(CatalogSnapshot::products).orElse(List.of()).stream()
+                    .filter(p -> p.kcalPer100g() > 0)
+                    .forEach(p -> previousWithMacros.put(p.id(), p));
+
+            List<Product> products = new ArrayList<>(ingestBiedronka());
+            Set<String> biedronkaBarcodes = new HashSet<>();
+            for (Product p : products) {
+                if (p.barcode() != null) {
+                    biedronkaBarcodes.add(p.barcode());
+                }
+            }
+            products.addAll(ingestOpenPrices(biedronkaBarcodes));
+            carryOverMacros(products, previousWithMacros);
+
+            CatalogSnapshot snapshot = new CatalogSnapshot(Instant.now().toString(), products);
+            Files.createDirectories(catalogFile.getParent());
+            Files.write(catalogFile, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(snapshot));
+            status = new IngestStatus("done",
+                    "Каталог оновлено: " + products.size() + " продуктів",
+                    snapshot.generatedAt(), products.size(), products.size());
+            log.info("Каталог: {} продуктів збережено в {}", products.size(), catalogFile);
+            onCatalogReady.accept(products);
+        } catch (Exception e) {
+            log.error("Оновлення каталогу впало", e);
+            status = new IngestStatus("error", "Помилка: " + e.getMessage(), null, 0, 0);
+        }
+    }
+
+    /** Скрапінг лістингів zakupy.biedronka.pl + матчинг КБЖВ з OFF-індексу. */
+    private List<Product> ingestBiedronka() {
+        List<Product> result = new ArrayList<>();
+        try {
+            status = new IngestStatus("running", "Завантажую індекс Open Food Facts…", null, 0, 0);
+            offIndex.ensureLoaded();
+            status = new IngestStatus("running", "Обходжу категорії zakupy.biedronka.pl…", null, 0, 0);
+            List<Tile> tiles = biedronkaClient.fetchAllProducts();
+
+            String today = LocalDate.now().toString();
+            int matched = 0;
+            for (Tile tile : tiles) {
+                OptionalDouble grams = QuantityParser.parseGrams(tile.name());
+                if (grams.isEmpty() || grams.getAsDouble() < 20 || grams.getAsDouble() > 5000
+                        || tile.priceZl() < 0.30 || tile.priceZl() > 200) {
+                    continue;
+                }
+                Optional<OffMatchIndex.Entry> match =
+                        offIndex.match(tile.name(), tile.brand(), grams.getAsDouble());
+                Macros macros = match.map(OffMatchIndex.Entry::macros).orElse(null);
+                if (match.isPresent()) {
+                    matched++;
+                }
+                result.add(new Product(
+                        "b-" + tile.pid(),
+                        match.map(OffMatchIndex.Entry::code).orElse(null),
+                        tile.name(),
+                        tile.brand(),
+                        "Biedronka",
+                        CatalogMapper.categoryFromBiedronka(tile.category(), tile.category2()),
+                        tile.priceZl(),
+                        grams.getAsDouble(),
+                        macros == null ? 0 : round1(macros.kcalPer100g()),
+                        macros == null ? 0 : round1(macros.proteinPer100g()),
+                        macros == null ? 0 : round1(macros.fatPer100g()),
+                        macros == null ? 0 : round1(macros.carbsPer100g()),
+                        tile.imageUrl() != null ? tile.imageUrl()
+                                : match.map(OffMatchIndex.Entry::imageUrl).orElse(null),
+                        "biedronka",
+                        today));
+            }
+            log.info("Biedronka: {} плиток → {} продуктів, з них {} з КБЖВ",
+                    tiles.size(), result.size(), matched);
+        } catch (Exception e) {
+            log.error("Скрапінг Biedronka впав — каталог буде без нього", e);
+        }
+        return result;
+    }
+
+    /** Краудсорсні ціни Open Prices для інших мереж. */
+    private List<Product> ingestOpenPrices(Set<String> alreadyCovered) {
+        List<Product> result = new ArrayList<>();
         try {
             status = new IngestStatus("running", "Завантажую ціни з Open Prices…", null, 0, 0);
             List<PriceEntry> entries = openPricesClient.fetchAllPlnPrices();
@@ -133,6 +231,9 @@ public class CatalogIngestionService {
                 if (store == null || e.product() == null || e.product().code() == null || e.date() == null) {
                     continue;
                 }
+                if (store.equals("Biedronka") && alreadyCovered.contains(e.product().code())) {
+                    continue;
+                }
                 String key = e.product().code() + "|" + store;
                 PriceEntry prev = latest.get(key);
                 if (prev == null || e.date().compareTo(prev.date()) > 0) {
@@ -142,8 +243,6 @@ public class CatalogIngestionService {
 
             Set<String> codes = new HashSet<>();
             latest.values().forEach(e -> codes.add(e.product().code()));
-            log.info("Open Prices: {} цін → {} пар (продукт, магазин), {} унікальних штрихкодів",
-                    entries.size(), latest.size(), codes.size());
 
             Map<String, Macros> macrosByCode = new HashMap<>();
             int done = 0;
@@ -157,27 +256,45 @@ public class CatalogIngestionService {
                 offClient.fetchMacros(code).ifPresent(m -> macrosByCode.put(code, m));
             }
 
-            List<Product> products = new ArrayList<>();
             for (Map.Entry<String, PriceEntry> e : latest.entrySet()) {
                 PriceEntry entry = e.getValue();
                 Macros macros = macrosByCode.get(entry.product().code());
                 if (macros == null) {
                     continue;
                 }
-                CatalogMapper.toProduct(entry, macros, storeOf(entry)).ifPresent(products::add);
+                CatalogMapper.toProduct(entry, macros, storeOf(entry)).ifPresent(result::add);
             }
-
-            CatalogSnapshot snapshot = new CatalogSnapshot(Instant.now().toString(), products);
-            Files.createDirectories(catalogFile.getParent());
-            Files.write(catalogFile, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(snapshot));
-            status = new IngestStatus("done",
-                    "Каталог оновлено: " + products.size() + " продуктів",
-                    snapshot.generatedAt(), codes.size(), codes.size());
-            log.info("Каталог: {} продуктів збережено в {}", products.size(), catalogFile);
-            onCatalogReady.accept(products);
+            log.info("Open Prices: {} продуктів з реальними цінами", result.size());
         } catch (Exception e) {
-            log.error("Оновлення каталогу впало", e);
-            status = new IngestStatus("error", "Помилка: " + e.getMessage(), null, 0, 0);
+            log.error("Open Prices впав — каталог буде без нього", e);
+        }
+        return result;
+    }
+
+    /** Продукти, що втратили КБЖВ через флейк OFF, забирають її з попереднього каталогу. */
+    private static void carryOverMacros(List<Product> products, Map<String, Product> previousWithMacros) {
+        if (previousWithMacros.isEmpty()) {
+            return;
+        }
+        int carried = 0;
+        for (int i = 0; i < products.size(); i++) {
+            Product p = products.get(i);
+            Product prev = previousWithMacros.get(p.id());
+            if (p.kcalPer100g() > 0 || prev == null) {
+                continue;
+            }
+            products.set(i, new Product(
+                    p.id(),
+                    p.barcode() != null ? p.barcode() : prev.barcode(),
+                    p.name(), p.brand(), p.store(), p.category(),
+                    p.packagePriceZl(), p.packageGrams(),
+                    prev.kcalPer100g(), prev.proteinPer100g(), prev.fatPer100g(), prev.carbsPer100g(),
+                    p.imageUrl() != null ? p.imageUrl() : prev.imageUrl(),
+                    p.priceSource(), p.priceDate()));
+            carried++;
+        }
+        if (carried > 0) {
+            log.info("КБЖВ перенесено з попереднього каталогу для {} продуктів", carried);
         }
     }
 
@@ -188,7 +305,14 @@ public class CatalogIngestionService {
         String brand = entry.location().osmBrand() != null
                 ? entry.location().osmBrand()
                 : entry.location().osmName();
-        return brand != null && allowedStores.contains(brand) ? brand : null;
+        if (brand == null) {
+            return null;
+        }
+        return brand.equals("Biedronka") || allowedStores.contains(brand) ? brand : null;
+    }
+
+    private static double round1(double v) {
+        return Math.round(v * 10.0) / 10.0;
     }
 
     @PreDestroy

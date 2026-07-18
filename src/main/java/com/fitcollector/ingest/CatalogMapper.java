@@ -98,6 +98,50 @@ public final class CatalogMapper {
                 entry.date()));
     }
 
+    /** Категорія з GTM-даних лістингу Biedronka (item_category / item_category2). */
+    public static String categoryFromBiedronka(String category, String subcategory) {
+        String cat = normalize(category);
+        String sub = normalize(subcategory);
+
+        if (sub.contains("jaja")) return "яйця";
+        if (sub.contains("twarog")) return "молочка";
+        if (sub.contains("jogurt") || sub.contains("kefir") || sub.contains("maslank")
+                || sub.contains("skyr")) return "йогурти";
+        // "sery", "serki" — так; "konserwy" — ні
+        if ((sub.startsWith("ser") || sub.contains(" ser")) && !sub.contains("konserw")) return "сир";
+        if (sub.contains("ryby") || sub.contains("owoce morza")) return "риба";
+        if (sub.contains("lody")) return "солодке";
+
+        if (cat.contains("nabial")) return "молочка";
+        if (cat.contains("mieso") || cat.contains("wedlin")) return "м'ясо";
+        if (cat.contains("owoce")) return "фрукти";
+        if (cat.contains("warzywa")) return "овочі";
+        if (cat.contains("piekarnia") || cat.contains("pieczywo")) return "хліб";
+        if (cat.contains("napoje")) return "напої";
+        if (cat.contains("spozywcze")) {
+            if (sub.contains("sypkie") || sub.contains("makaron") || sub.contains("ryz")
+                    || sub.contains("kasz") || sub.contains("platki")) return "крупи";
+            if (sub.contains("slodycze")) return "солодке";
+            if (sub.contains("przekaski")) return "снеки";
+            if (sub.contains("roslinne")) return "бобові";
+        }
+        if (cat.contains("mrozone")) {
+            if (sub.contains("owoce")) return "фрукти";
+            if (sub.contains("warzywa")) return "овочі";
+        }
+        return "інше";
+    }
+
+    private static String normalize(String s) {
+        if (s == null) {
+            return "";
+        }
+        return Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('ł', 'l').replace('Ł', 'l')
+                .toLowerCase(Locale.ROOT);
+    }
+
     public static String category(List<String> tags) {
         if (tags != null) {
             for (Map.Entry<String, String> e : CATEGORY_BY_TAG.entrySet()) {

@@ -6,8 +6,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * Продукт з магазину. Ціна — за упаковку, КБЖВ — на 100 г продукту.
  *
- * priceSource: "open-prices" — реальна краудсорсна ціна з чеків (prices.openfoodfacts.org),
- * "seed" — орієнтовна ціна з локальної бази.
+ * priceSource: "biedronka" — офіційна ціна з zakupy.biedronka.pl,
+ * "open-prices" — краудсорсна ціна з чеків (prices.openfoodfacts.org).
+ *
+ * kcalPer100g == 0 означає, що КБЖВ для продукту невідома: такі продукти
+ * лишаються в каталозі (ціна й фото реальні), але не беруть участі
+ * в білкових метриках та оптимізаторі раціону.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Product(
@@ -26,12 +30,6 @@ public record Product(
         String imageUrl,
         String priceSource,
         String priceDate) {
-
-    public Product {
-        if (priceSource == null || priceSource.isBlank()) {
-            priceSource = "seed";
-        }
-    }
 
     /** Ціна за 100 г продукту, zł. */
     @JsonProperty("pricePer100g")

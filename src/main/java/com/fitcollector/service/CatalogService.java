@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitcollector.ingest.CatalogIngestionService;
 import com.fitcollector.ingest.CatalogIngestionService.CatalogSnapshot;
 import com.fitcollector.model.Product;
-import com.fitcollector.repository.ProductRepository;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,41 +12,36 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Актуальний каталог = продукти з реальними цінами (Open Prices + OFF) + локальна
- * seed-база як доповнення. Джерело інжесту, за пріоритетом:
+ * Актуальний каталог продуктів. Джерело, за пріоритетом:
  * дисковий кеш → вбудований снапшот (щоб перший запуск працював одразу і офлайн).
+ * Після кожного фонового оновлення каталог замінюється свіжим.
  */
 @Service
 public class CatalogService {
 
     private static final Logger log = LoggerFactory.getLogger(CatalogService.class);
 
-    private final ProductRepository seedRepository;
     private final CatalogIngestionService ingestionService;
     private final ObjectMapper objectMapper;
 
     private volatile List<Product> products = List.of();
 
-    public CatalogService(ProductRepository seedRepository,
-                          CatalogIngestionService ingestionService,
-                          ObjectMapper objectMapper) {
-        this.seedRepository = seedRepository;
+    public CatalogService(CatalogIngestionService ingestionService, ObjectMapper objectMapper) {
         this.ingestionService = ingestionService;
         this.objectMapper = objectMapper;
     }
 
     @PostConstruct
     void init() {
-        List<Product> ingested = ingestionService.loadDiskCache()
+        List<Product> initial = ingestionService.loadDiskCache()
                 .map(CatalogSnapshot::products)
                 .orElseGet(this::loadBundledSnapshot);
-        rebuild(ingested);
+        rebuild(initial);
         ingestionService.setOnCatalogReady(this::rebuild);
     }
 
@@ -66,12 +60,9 @@ public class CatalogService {
         }
     }
 
-    private synchronized void rebuild(List<Product> ingested) {
-        List<Product> merged = new ArrayList<>(ingested);
-        merged.addAll(seedRepository.findAll());
-        this.products = List.copyOf(merged);
-        log.info("Каталог зібрано: {} продуктів ({} з реальними цінами, {} seed)",
-                merged.size(), ingested.size(), seedRepository.findAll().size());
+    private void rebuild(List<Product> fresh) {
+        this.products = List.copyOf(fresh);
+        log.info("Каталог: {} продуктів", fresh.size());
     }
 
     public List<Product> findAll() {

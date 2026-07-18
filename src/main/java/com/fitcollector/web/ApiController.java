@@ -52,7 +52,7 @@ public class ApiController {
     public Map<String, Object> status() {
         return Map.of(
                 "productsTotal", catalog.findAll().size(),
-                "realPrices", catalog.findAll().stream().filter(p -> "open-prices".equals(p.priceSource())).count(),
+                "withMacros", catalog.findAll().stream().filter(p -> p.kcalPer100g() > 0).count(),
                 "ingest", ingestionService.status());
     }
 

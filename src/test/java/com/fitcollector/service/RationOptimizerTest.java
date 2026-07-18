@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RationOptimizerTest {
 
-    private final RationOptimizer optimizer = new RationOptimizer();
+    private final RationOptimizer optimizer = new RationOptimizer(List.of("mąka"));
 
     private static Product product(String id, double price, double grams,
                                    double kcal, double protein, double fat, double carbs) {
@@ -83,6 +83,19 @@ class RationOptimizerTest {
         assertThat(result.feasible()).isFalse();
         assertThat(result.message()).isNotBlank();
         assertThat(result.items()).isEmpty();
+    }
+
+    @Test
+    void excludesRawStaplesLikeFlourFromRation() {
+        // борошно — найдешевший "білок", але їсти його сирим ніхто не буде
+        Product namedFlour = new Product("flour2", null, "Mąka pszenna Tortowa 1 kg", null,
+                "Biedronka", "крупи", 1.79, 1000, 364, 10.0, 1.0, 76.0, null, "biedronka", null);
+
+        RationResult result = optimizer.optimize(
+                List.of(namedFlour, oats), request(1500, 50, null, 1000));
+
+        assertThat(result.feasible()).isTrue();
+        assertThat(result.items()).noneMatch(i -> i.productId().equals("flour2"));
     }
 
     @Test

@@ -12,10 +12,12 @@ import org.apache.commons.math3.optim.linear.Relationship;
 import org.apache.commons.math3.optim.linear.SimplexSolver;
 import org.apache.commons.math3.optim.linear.UnboundedSolutionException;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Складає найдешевший денний раціон під задані КБЖВ.
@@ -36,12 +38,30 @@ public class RationOptimizer {
     /** Округлення порцій для зручності зважування. */
     private static final double PORTION_STEP_GRAMS = 5.0;
 
+    /**
+     * Сировина, яку не їдять як є: без цього фільтра розв'язок задачі Стіглера
+     * чесно радить харчуватися сирим борошном.
+     */
+    private final List<String> excludeTerms;
+
+    public RationOptimizer(
+            @Value("${fitcollector.ration.exclude-terms:mąka,maka ,cukier,sól,drożdże,ocet,przyprawa,bulion}")
+            List<String> excludeTerms) {
+        this.excludeTerms = excludeTerms.stream()
+                .map(t -> t.toLowerCase(Locale.ROOT))
+                .toList();
+    }
+
     public RationResult optimize(List<Product> candidates, RationRequest request) {
         if (request.targetKcal() <= 0) {
             return RationResult.infeasible("Цільова калорійність має бути більшою за нуль.");
         }
         List<Product> products = candidates.stream()
                 .filter(p -> p.kcalPer100g() > 0)
+                .filter(p -> {
+                    String name = p.name().toLowerCase(Locale.ROOT);
+                    return excludeTerms.stream().noneMatch(name::contains);
+                })
                 .toList();
         if (products.isEmpty()) {
             return RationResult.infeasible("Немає продуктів для вибраних магазинів.");
